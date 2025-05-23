@@ -304,13 +304,13 @@ bool Map::isLos(int startCell, int endCell, std::set<int> occupiedCells) const {
     // Obtenir toutes les cellules potentiellement sur le chemin
     std::vector<int> cellsOnPath = getCellsOnLine(startCenter, endCenter);
 
-    for (int cellId : cellsOnPath) {
-        std::cout << "Cellule sur le chemin: " << cellId << std::endl;
-    }
-    if (cellsOnPath.empty()) {
-        std::cout << "Aucune cellule sur le chemin" << std::endl;
-        return true; // Pas d'obstacles si aucune cellule sur le chemin
-    }
+    // for (int cellId : cellsOnPath) {
+    //     std::cout << "Cellule sur le chemin: " << cellId << std::endl;
+    // }
+    // if (cellsOnPath.empty()) {
+    //     std::cout << "Aucune cellule sur le chemin" << std::endl;
+    //     return true; // Pas d'obstacles si aucune cellule sur le chemin
+    // }
     
     // Collecter tous les obstacles (cellules avec los = 0 ou occupées)
     std::vector<int> obstacles;
@@ -335,7 +335,7 @@ bool Map::isLos(int startCell, int endCell, std::set<int> occupiedCells) const {
     
     // S'il n'y a pas d'obstacles, il y a LoS
     if (obstacles.empty()) {
-        std::cout << "Pas d'obstacles, LoS degagee" << std::endl;
+        // std::cout << "Pas d'obstacles, LoS degagee" << std::endl;
         return true;
     }
     
@@ -402,8 +402,8 @@ bool Map::isLos(int startCell, int endCell, std::set<int> occupiedCells) const {
         // Calculer la différence d'angle dans le bon sens
         double angleDiff = normalizeAngle(maxAngle - minAngle);
         double targetDiff = normalizeAngle(checkAngle - minAngle);
-        std::cout << "AngleDiff: " << angleDiff << " for " << obstacleId << std::endl;
-        if (targetDiff <= angleDiff) {
+        std::cout << "TargetDiff: " << targetDiff << " - AngleDiff: " << angleDiff << " for " << obstacleId << " - Min: " << minAngle << " Max: " << maxAngle << std::endl;
+        if (targetDiff < angleDiff) {
             inShadow = true;
         }
         
@@ -531,7 +531,6 @@ std::vector<Map::ShadowSector> Map::mergeShadowSectors(std::vector<ShadowSector>
 }
 
 std::vector<int> Map::getCellsOnLine(const Point2D& start, const Point2D& end) const {
-    std::vector<int> cells;
     std::set<int> uniqueCells; // Pour éviter les doublons
     
     // Utiliser l'algorithme de Bresenham adapté pour la grille en losanges
@@ -539,44 +538,80 @@ std::vector<int> Map::getCellsOnLine(const Point2D& start, const Point2D& end) c
     double dy = end.y - start.y;
     double distance = std::sqrt(dx * dx + dy * dy);
     
-    // Échantillonner le long de la ligne
-    int steps = static_cast<int>(distance * 10); // Plus de précision
+    if (distance < 0.001) {
+        return std::vector<int>(); // Points identiques
+    }
     
-    for (int i = 0; i <= steps; ++i) {
-        double t = static_cast<double>(i) / steps;
-        double x = start.x + t * dx;
-        double y = start.y + t * dy;
+    // Direction normalisée
+    double dirX = dx / distance;
+    double dirY = dy / distance;
+    
+    // Échantillonner le long de la ligne avec un pas très fin
+    double step = 0.1; // Pas très fin pour ne rater aucune cellule
+    
+    for (double t = 0; t <= distance; t += step) {
+        double x = start.x + t * dirX;
+        double y = start.y + t * dirY;
         
         // Convertir la position en cellule
         const double scaleX = 1.5;
         const double scaleY = 1.125;
         
-        // Estimation de la ligne
-        int estimatedY = static_cast<int>(y / (scaleY * 0.5) + 0.5);
-        bool oddRow = (estimatedY % 2 == 1);
+        // Tester plusieurs cellules autour du point pour être sûr
+        // Car la conversion n'est pas toujours exacte à cause de la grille en losange
         
-        int cellX = static_cast<int>((x - oddRow * 0.5 * scaleX) / scaleX + 0.5);
-        int cellY = estimatedY;
+        // Estimation de base
+        int estimatedY = static_cast<int>(std::round(y / (scaleY * 0.5)));
         
-        if (cellX >= 0 && cellX < width_ && cellY >= 0 && cellY < height_) {
-            int cellId = getCellNumber(cellX, cellY);
+        // Tester plusieurs lignes autour
+        for (int dy = -1; dy <= 1; dy++) {
+            int testY = estimatedY + dy;
+            if (testY < 0 || testY >= height_) continue;
             
-            // Vérifier que la cellule est vraiment sur ou très proche de la ligne
-            Point2D cellCenter = getCellCenter(cellId);
+            bool oddRow = (testY % 2 == 1);
             
-            // Distance point-ligne
-            double crossProduct = (end.y - start.y) * (cellCenter.x - start.x) - 
-                                 (end.x - start.x) * (cellCenter.y - start.y);
-            double distToLine = std::abs(crossProduct) / distance;
+            // Estimation de X en tenant compte du décalage des lignes impaires
+            int estimatedX = static_cast<int>(std::round((x - oddRow * 0.5 * scaleX) / scaleX));
             
-            // Si la cellule est très proche de la ligne (seuil plus strict)
-            if (distToLine < 0.5) {
-                uniqueCells.insert(cellId);
+            // Tester plusieurs colonnes autour
+            for (int dx = -1; dx <= 1; dx++) {
+                int testX = estimatedX + dx;
+                if (testX < 0 || testX >= width_) continue;
+                
+                int cellId = getCellNumber(testX, testY);
+                if (!cellExists(cellId)) continue;
+                
+                // Vérifier que cette cellule est proche de la ligne
+                Point2D cellCenter = getCellCenter(cellId);
+                
+                // Distance du centre de la cellule à la ligne
+                // Utiliser la formule de distance point-ligne
+                double A = end.y - start.y;
+                double B = start.x - end.x;
+                double C = end.x * start.y - start.x * end.y;
+                
+                double distToLine = std::abs(A * cellCenter.x + B * cellCenter.y + C) / std::sqrt(A*A + B*B);
+                
+                // Vérifier aussi que la cellule est entre start et end (pas au-delà)
+                double dotProduct = (cellCenter.x - start.x) * dirX + (cellCenter.y - start.y) * dirY;
+                if (dotProduct < -step || dotProduct > distance + step) {
+                    continue; // Cellule au-delà des extrémités
+                }
+                
+                // Si la cellule est suffisamment proche de la ligne
+                // Utiliser un seuil qui prend en compte la taille des cellules
+                double threshold = std::max(scaleX, scaleY) * 0.7; // 70% de la taille d'une cellule
+                
+                if (distToLine <= threshold) {
+                    uniqueCells.insert(cellId);
+                }
             }
         }
     }
     
-    // Convertir le set en vector
-    cells.assign(uniqueCells.begin(), uniqueCells.end());
+    // Convertir le set en vector trié
+    std::vector<int> cells(uniqueCells.begin(), uniqueCells.end());
+    std::sort(cells.begin(), cells.end());
+    
     return cells;
 }
