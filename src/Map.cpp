@@ -303,6 +303,14 @@ bool Map::isLos(int startCell, int endCell, std::set<int> occupiedCells) const {
     
     // Obtenir toutes les cellules potentiellement sur le chemin
     std::vector<int> cellsOnPath = getCellsOnLine(startCenter, endCenter);
+
+    for (int cellId : cellsOnPath) {
+        std::cout << "Cellule sur le chemin: " << cellId << std::endl;
+    }
+    if (cellsOnPath.empty()) {
+        std::cout << "Aucune cellule sur le chemin" << std::endl;
+        return true; // Pas d'obstacles si aucune cellule sur le chemin
+    }
     
     // Collecter tous les obstacles (cellules avec los = 0 ou occupées)
     std::vector<int> obstacles;
@@ -327,6 +335,7 @@ bool Map::isLos(int startCell, int endCell, std::set<int> occupiedCells) const {
     
     // S'il n'y a pas d'obstacles, il y a LoS
     if (obstacles.empty()) {
+        std::cout << "Pas d'obstacles, LoS degagee" << std::endl;
         return true;
     }
     
@@ -380,6 +389,7 @@ bool Map::isLos(int startCell, int endCell, std::set<int> occupiedCells) const {
     
     // Vérifier si le centre de la cellule cible est dans l'ombre
     double targetAngle = getAngle(startCenter, endCenter);
+    std::cout << "Angle cible: " << targetAngle << std::endl;
     
     // Vérifier dans quel secteur d'ombre se trouve la cible
     for (const auto& [shadow, obstacleId] : shadowSectorsWithSource) {
@@ -392,14 +402,14 @@ bool Map::isLos(int startCell, int endCell, std::set<int> occupiedCells) const {
         // Calculer la différence d'angle dans le bon sens
         double angleDiff = normalizeAngle(maxAngle - minAngle);
         double targetDiff = normalizeAngle(checkAngle - minAngle);
-        
+        std::cout << "AngleDiff: " << angleDiff << " for " << obstacleId << std::endl;
         if (targetDiff <= angleDiff) {
             inShadow = true;
         }
         
         if (inShadow) {
-            std::cout << "LoS bloquée par la cellule " << obstacleId 
-                     << " (ombre projetée de " << startCell << " vers " << endCell << ")" << std::endl;
+            // std::cout << "LoS bloquée par la cellule " << obstacleId 
+            //          << " (ombre projetée de " << startCell << " vers " << endCell << ")" << std::endl;
             return false;
         }
     }
@@ -494,7 +504,6 @@ std::vector<Map::ShadowSector> Map::mergeShadowSectors(std::vector<ShadowSector>
         
         double lastMax = normalizeAngle(last.angleMax);
         double currentMin = normalizeAngle(current.angleMin);
-        double currentMax = normalizeAngle(current.angleMax);
         
         // Vérifier le chevauchement
         bool overlap = false;
@@ -529,10 +538,6 @@ std::vector<int> Map::getCellsOnLine(const Point2D& start, const Point2D& end) c
     double dx = end.x - start.x;
     double dy = end.y - start.y;
     double distance = std::sqrt(dx * dx + dy * dy);
-    
-    // Direction normalisée
-    double dirX = dx / distance;
-    double dirY = dy / distance;
     
     // Échantillonner le long de la ligne
     int steps = static_cast<int>(distance * 10); // Plus de précision
