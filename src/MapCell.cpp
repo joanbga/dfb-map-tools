@@ -3,7 +3,8 @@
 #include <iomanip>
 #include <unordered_set>
 
-void MapCell::print(int cellIndex) const {
+void MapCell::print(int cellIndex) const
+{
     std::cout << "Cellule " << cellIndex << ":\n";
     std::cout << "  Numero: " << cellNumber << "\n";
     std::cout << "  Vitesse: " << speed << "\n";
@@ -24,7 +25,8 @@ void MapCell::print(int cellIndex) const {
     std::cout << "  Arrow: " << arrow << "\n\n";
 }
 
-bool MapCell::operator==(const MapCell& other) const {
+bool MapCell::operator==(const MapCell &other) const
+{
     return cellNumber == other.cellNumber && speed == other.speed &&
            mapChangeData == other.mapChangeData && moveZone == other.moveZone &&
            linkedZone == other.linkedZone && mov == other.mov && los == other.los &&

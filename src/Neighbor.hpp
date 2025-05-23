@@ -2,12 +2,23 @@
 
 #include <string>
 
-enum Direction { EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST, NORTH_WEST, NORTH, NORTH_EST };
+enum Direction
+{
+    EAST,
+    SOUTH_EAST,
+    SOUTH,
+    SOUTH_WEST,
+    WEST,
+    NORTH_WEST,
+    NORTH,
+    NORTH_EST
+};
 
 /**
  * Structure représentant un voisin avec sa direction
  */
-struct Neighbor {
+struct Neighbor
+{
     int cellId;
     Direction direction;
 
