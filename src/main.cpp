@@ -20,12 +20,12 @@ std::set<int> getOccupiedCellsFromArgs(const std::vector<std::string> &args, int
         }
         catch (const std::invalid_argument &e)
         {
-            std::cerr << "Error: '" << args[i] << "' is not a valid cellId" << std::endl;
+            std::cerr << "Error: '" << args[i] << "' is not a valid cellId" << std::flush;
             return {};
         }
         catch (const std::out_of_range &e)
         {
-            std::cerr << "Error: '" << args[i] << "' too big for cellId" << std::endl;
+            std::cerr << "Error: '" << args[i] << "' too big for cellId" << std::flush;
             return {};
         }
     }
@@ -44,10 +44,10 @@ int hasFourAdjacentCellsFree(const std::string &programParam, const std::vector<
     std::set<int> occupiedCells = getOccupiedCellsFromArgs(args, 1);
     if (map.hasFourAdjacentCellsFree(cellId, occupiedCells))
     {
-        std::cout << "OK" << std::endl;
+        std::cout << "OK" << std::flush;
         return 0;
     }
-    std::cout << "KO" << std::endl;
+    std::cout << "KO" << std::flush;
     return 1;
 }
 
@@ -80,6 +80,26 @@ int getNeighbors(const std::string &programParam, const std::vector<std::string>
     return 0;
 }
 
+int isLos(const std::string &programParam, const std::vector<std::string> &args,
+                 const Map &map)
+{
+    if (args.size() < 2)
+    {
+        std::cerr << "Usage: isLos <startCellId> <endCellId> [occupiedCells...]" << std::endl;
+        return 1;
+    }
+    int startCellId = std::stoi(args[0]);
+    int endCellId = std::stoi(args[1]);
+    std::set<int> occupiedCells = getOccupiedCellsFromArgs(args, 2);
+    if (map.isLos(startCellId, endCellId, occupiedCells))
+    {
+        std::cout << "OK" << std::flush;
+        return 0;
+    }
+    std::cout << "KO" << std::flush;
+    return 1;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -100,6 +120,7 @@ int main(int argc, char *argv[])
     // Enregistrer les commandes
     commands.registerCommand("hasFourAdjacentCellsFree", hasFourAdjacentCellsFree);
     commands.registerCommand("getNeighbors", getNeighbors);
+    commands.registerCommand("isLos", isLos);
 
     if (argc < 3)
     {

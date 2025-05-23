@@ -7,6 +7,19 @@
 #include "Neighbor.hpp"
 #include <set>
 
+#define M_PI       3.14159265358979323846
+
+// Structure pour les coordonnées hexagonales cubiques
+    struct HexCube
+    {
+        double x, y, z;
+    };
+
+    struct AxialCoord
+    {
+        double q, r;
+    };
+
 /**
  * Classe pour gérer une carte avec ses cellules et leurs relations
  */
@@ -85,6 +98,20 @@ public:
     bool hasFourAdjacentCellsFree(int cellNumber, std::set<int> occupiedCells) const;
 
     /**
+     * Vérifie si il y a une ligne de vue (Line of Sight) entre deux cellules
+     * @param startCell Cellule de départ
+     * @param endCell Cellule d'arrivée  
+     * @param occupiedCells Set des cellules occupées qui bloquent la LoS
+     * @return true si la ligne de vue est dégagée, false sinon
+     */
+    bool isLos(int startCell, int endCell, std::set<int> occupiedCells) const;
+
+    /**
+     * Surcharge sans paramètre occupiedCells (utilise un set vide)
+     */
+    bool isLos(int startCell, int endCell) const;
+
+    /**
      * Afficher les informations des voisins d'une cellule
      */
     void printNeighbors(int cellNumber, bool includeDiagonal = true) const;
@@ -114,4 +141,57 @@ private:
      * Vérifier si un voisin est valide
      */
     bool isValidNeighbor(int neighborId, int originalX, int originalY, Direction direction) const;
+
+    private:
+    /**
+     * Structure pour représenter un point 2D
+     */
+    struct Point2D {
+        double x, y;
+        Point2D(double x = 0, double y = 0) : x(x), y(y) {}
+    };
+
+    /**
+     * Structure pour représenter un secteur d'ombre
+     */
+    struct ShadowSector {
+        double angleMin;
+        double angleMax;
+        ShadowSector(double min, double max) : angleMin(min), angleMax(max) {}
+    };
+
+    /**
+     * Obtenir la position 2D du centre d'une cellule
+     */
+    Point2D getCellCenter(int cellId) const;
+
+    /**
+     * Obtenir les 4 coins d'une cellule (losange)
+     */
+    std::vector<Point2D> getCellCorners(int cellId) const;
+
+    /**
+     * Calculer l'angle entre deux points par rapport à l'origine
+     */
+    double getAngle(const Point2D& origin, const Point2D& target) const;
+
+    /**
+     * Normaliser un angle entre 0 et 2*PI
+     */
+    double normalizeAngle(double angle) const;
+
+    /**
+     * Vérifier si un angle est dans un secteur d'ombre
+     */
+    bool isAngleInShadow(double angle, const std::vector<ShadowSector>& shadows) const;
+
+    /**
+     * Fusionner les secteurs d'ombre qui se chevauchent
+     */
+    std::vector<ShadowSector> mergeShadowSectors(std::vector<ShadowSector>& sectors) const;
+
+    /**
+     * Obtenir toutes les cellules sur une ligne entre deux points
+     */
+    std::vector<int> getCellsOnLine(const Point2D& start, const Point2D& end) const;
 };
