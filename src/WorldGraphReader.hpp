@@ -5,6 +5,11 @@
 
 class WorldGraph;
 
+struct IndexEntry {
+    uint32_t mapId;
+    uint32_t dataOffset;
+};
+
 class WorldGraphReader {
 public:
     static constexpr uint32_t MAGIC = 0x4D415044; // 'MAPD'
@@ -15,11 +20,6 @@ public:
         uint32_t version;
         uint32_t mapCount;
         uint32_t indexOffset;
-    };
-
-    struct IndexEntry {
-        uint32_t mapId;
-        uint32_t dataOffset;
     };
 
     // Lit le worldgraph depuis un fichier binaire

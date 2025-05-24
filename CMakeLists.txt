@@ -38,6 +38,7 @@ add_library(MapCellLib STATIC
     ${SRC_DIR}/errors/DfbException.hpp
     ${SRC_DIR}/Direction.hpp
     ${SRC_DIR}/Commands.hpp
+    ${SRC_DIR}/MapCommands.hpp
     ${SRC_DIR}/MapCell.cpp
     ${SRC_DIR}/MapCell.hpp
     ${SRC_DIR}/Map.hpp
@@ -53,9 +54,9 @@ add_library(WorldGraphLib STATIC
     ${SRC_DIR}/Direction.hpp
     ${SRC_DIR}/WorldGraph.hpp
     ${SRC_DIR}/WorldGraph.cpp
-    ${SRC_DIR}/WorldGraphReader.hpp
     ${SRC_DIR}/WorldGraphReader.cpp
-    ${SRC_DIR}/WorldGraphCommands.cpp
+    ${SRC_DIR}/WorldGraphReader.hpp
+    ${SRC_DIR}/WorldGraphCommands.hpp
 )
 
 # Propriétés de la bibliothèque MapCell

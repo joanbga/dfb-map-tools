@@ -1,40 +1,13 @@
+#pragma once
+
 #include <iostream>
 #include <vector>
-#include <string>
-#include <sstream>
-#include <iomanip>
 
-#include "Commands.hpp"
 #include "WorldGraph.hpp"
+#include "Commands.hpp"
 
-// Fonctions de commandes WorldGraph
-int findMap(const std::string& programParam, const std::vector<std::string>& args,
-    const Map& map, const WorldGraph& worldGraph);
-int getMapEdges(const std::string& programParam, const std::vector<std::string>& args,
-    const Map& map, const WorldGraph& worldGraph);
-int getWorldGraphStats(const std::string& programParam, const std::vector<std::string>& args,
-    const Map& map, const WorldGraph& worldGraph);
-int listMapsInArea(const std::string& programParam, const std::vector<std::string>& args,
-    const Map& map, const WorldGraph& worldGraph);
-
-// Fonction helper pour parser un mapId depuis les arguments
-uint32_t parseMapId(const std::string& arg) {
-    try {
-        // Support pour les nombres hexadécimaux (préfixés par 0x)
-        if (arg.size() > 2 && arg[0] == '0' && (arg[1] == 'x' || arg[1] == 'X')) {
-            return std::stoul(arg, nullptr, 16);
-        }
-        return std::stoul(arg);
-    }
-    catch (const std::exception& e) {
-        throw std::invalid_argument("Invalid mapId: " + arg);
-    }
-}
-
-int findMap(const std::string& programParam, const std::vector<std::string>& args,
-    const Map& map, const WorldGraph& worldGraph) {
+int findMap(const std::string& programParam, const std::vector<std::string>& args, const WorldGraph& worldGraph) {
     (void)programParam;
-    (void)map;
 
     if (args.size() < 1) {
         std::cerr << "Usage: findMap <mapId>" << std::endl;
@@ -64,10 +37,8 @@ int findMap(const std::string& programParam, const std::vector<std::string>& arg
     }
 }
 
-int getMapEdges(const std::string& programParam, const std::vector<std::string>& args,
-    const Map& map, const WorldGraph& worldGraph) {
+int getMapEdges(const std::string& programParam, const std::vector<std::string>& args, const WorldGraph& worldGraph) {
     (void)programParam;
-    (void)map;
 
     if (args.size() < 1) {
         std::cerr << "Usage: getMapEdges <mapId>" << std::endl;
@@ -115,11 +86,9 @@ int getMapEdges(const std::string& programParam, const std::vector<std::string>&
     }
 }
 
-int getWorldGraphStats(const std::string& programParam, const std::vector<std::string>& args,
-    const Map& map, const WorldGraph& worldGraph) {
+int getWorldGraphStats(const std::string& programParam, const std::vector<std::string>& args, const WorldGraph& worldGraph) {
     (void)programParam;
     (void)args;
-    (void)map;
 
     std::cout << "{"
         << "\"mapCount\":" << worldGraph.getMapCount() << ","
@@ -128,14 +97,12 @@ int getWorldGraphStats(const std::string& programParam, const std::vector<std::s
         << "\"averageEdgesPerMap\":"
         << (worldGraph.getMapCount() > 0 ?
             static_cast<double>(worldGraph.getTotalEdgeCount()) / worldGraph.getMapCount() : 0)
-        << "}" << std::flush;
+        << "}" << std::endl;
     return 0;
 }
 
-int listMapsInArea(const std::string& programParam, const std::vector<std::string>& args,
-    const Map& map, const WorldGraph& worldGraph) {
+int listMapsInArea(const std::string& programParam, const std::vector<std::string>& args, const WorldGraph& worldGraph) {
     (void)programParam;
-    (void)map;
 
     if (args.size() < 4) {
         std::cerr << "Usage: listMapsInArea <minX> <minY> <maxX> <maxY>" << std::endl;
@@ -171,27 +138,4 @@ int listMapsInArea(const std::string& programParam, const std::vector<std::strin
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
-}
-
-// Enregistrer toutes les commandes WorldGraph
-void registerWorldGraphCommands(Commands& commands, const WorldGraph& worldGraph) {
-    commands.registerCommand("findMap",
-        [&worldGraph](const std::string& p, const std::vector<std::string>& a, const Map& m) {
-            return findMap(p, a, m, worldGraph);
-        });
-
-    commands.registerCommand("getMapEdges",
-        [&worldGraph](const std::string& p, const std::vector<std::string>& a, const Map& m) {
-            return getMapEdges(p, a, m, worldGraph);
-        });
-
-    commands.registerCommand("getWorldGraphStats",
-        [&worldGraph](const std::string& p, const std::vector<std::string>& a, const Map& m) {
-            return getWorldGraphStats(p, a, m, worldGraph);
-        });
-
-    commands.registerCommand("listMapsInArea",
-        [&worldGraph](const std::string& p, const std::vector<std::string>& a, const Map& m) {
-            return listMapsInArea(p, a, m, worldGraph);
-        });
 }

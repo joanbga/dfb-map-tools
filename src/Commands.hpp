@@ -8,19 +8,21 @@
 
 class Map;
 
-using CommandFunction = std::function<int(const std::string&, const std::vector<std::string>&, const Map&)>;
+template<class T>
+using CommandFunction = std::function<int(const std::string&, const std::vector<std::string>&, const T&)>;
 
+template<class T>
 class Commands {
 private:
-    std::unordered_map<std::string, CommandFunction> m_commands;
-    const Map& m_map;
+    std::unordered_map<std::string, CommandFunction<T>> m_commands;
+    const T& m_t;
 
 public:
-    Commands(int argc, char* argv[], const Map& map) : m_map(map) {
+    Commands(int argc, char* argv[], const T& t) : m_t(t) {
         (void)argc; (void)argv; // Éviter les warnings
     }
 
-    void registerCommand(const std::string& name, CommandFunction func) {
+    void registerCommand(const std::string& name, CommandFunction<T> func) {
         m_commands[name] = func;
     }
 
@@ -52,6 +54,20 @@ public:
             args.push_back(argv[i]);
         }
 
-        return it->second(argv[0], args, m_map);
+        return it->second(argv[0], args, m_t);
     }
 };
+
+// Fonction helper pour parser un mapId depuis les arguments
+uint32_t parseMapId(const std::string& arg) {
+    try {
+        // Support pour les nombres hexadécimaux (préfixés par 0x)
+        if (arg.size() > 2 && arg[0] == '0' && (arg[1] == 'x' || arg[1] == 'X')) {
+            return std::stoul(arg, nullptr, 16);
+        }
+        return std::stoul(arg);
+    }
+    catch (const std::exception& e) {
+        throw std::invalid_argument("Invalid mapId: " + arg);
+    }
+}

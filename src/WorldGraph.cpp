@@ -3,6 +3,7 @@
 #include <algorithm>
 
 bool WorldGraph::loadFromBinary(const std::string& filepath) {
+    // return true;
     return WorldGraphReader::readWorldGraphFromBinary(filepath, *this);
 }
 

@@ -32,11 +32,10 @@ struct WorldGraphMapData {
 };
 
 class WorldGraph {
+private:
+
 
 public:
-    std::unordered_map<uint32_t, WorldGraphMapData> m_mapData;
-    std::unordered_map<uint32_t, Vec2> m_mapCoordinates;
-    std::unordered_map<uint32_t, std::vector<WorldGraphEdge>> m_worldGraph;
     WorldGraph() = default;
 
     // Charge le worldgraph depuis le fichier binaire
@@ -61,4 +60,8 @@ public:
     size_t getMapCount() const { return m_mapData.size(); }
     size_t getTotalEdgeCount() const;
     size_t getTotalTransitionCount() const;
+
+    std::unordered_map<uint32_t, WorldGraphMapData> m_mapData;
+    std::unordered_map<uint32_t, Vec2> m_mapCoordinates;
+    std::unordered_map<uint32_t, std::vector<WorldGraphEdge>> m_worldGraph;
 };

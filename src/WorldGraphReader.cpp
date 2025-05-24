@@ -2,6 +2,7 @@
 #include "WorldGraph.hpp"
 #include <fstream>
 #include <iostream>
+// #include <istream>
 #include <vector>
 
 bool WorldGraphReader::validateHeader(const FileHeader& header) {
@@ -21,6 +22,8 @@ bool WorldGraphReader::validateHeader(const FileHeader& header) {
 }
 
 bool WorldGraphReader::readWorldGraphFromBinary(const std::string& filepath, WorldGraph& worldGraph) {
+    // std::cerr << "Attempting to open file: " << filepath << std::endl;
+
     std::ifstream file(filepath, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << filepath << std::endl;
@@ -31,14 +34,19 @@ bool WorldGraphReader::readWorldGraphFromBinary(const std::string& filepath, Wor
     FileHeader header;
     file.read(reinterpret_cast<char*>(&header), sizeof(FileHeader));
 
+    if (!file.good()) {
+        std::cerr << "Failed to read header from file" << std::endl;
+        return false;
+    }
+
     if (!validateHeader(header)) {
         return false;
     }
 
-    std::cout << "Loading WorldGraph with " << header.mapCount << " maps..." << std::endl;
+    // std::cout << "Loading WorldGraph with " << header.mapCount << " maps..." << std::endl;
 
     // Se positionner à l'index
-    file.seekg(header.indexOffset);
+    // file.seekg(header.indexOffset);
 
     // Lire l'index
     std::vector<IndexEntry> index(header.mapCount);
@@ -102,9 +110,10 @@ bool WorldGraphReader::readWorldGraphFromBinary(const std::string& filepath, Wor
 
     if (!file.good() && !file.eof()) {
         std::cerr << "Error reading file" << std::endl;
+        std::cerr.flush();
         return false;
     }
 
-    std::cout << "WorldGraph loaded successfully!" << std::endl;
+    // std::cout << "WorldGraph loaded successfully!" << std::endl;
     return true;
 }
