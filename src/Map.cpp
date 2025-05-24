@@ -389,27 +389,24 @@ bool Map::isLos(int startCell, int endCell, std::set<int> occupiedCells) const {
     
     // Vérifier si le centre de la cellule cible est dans l'ombre
     double targetAngle = getAngle(startCenter, endCenter);
-    std::cout << "Angle cible: " << targetAngle << std::endl;
     
     // Vérifier dans quel secteur d'ombre se trouve la cible
     for (const auto& [shadow, obstacleId] : shadowSectorsWithSource) {
         double minAngle = normalizeAngle(shadow.angleMin);
         double maxAngle = normalizeAngle(shadow.angleMax);
         double checkAngle = normalizeAngle(targetAngle);
+
         
         bool inShadow = false;
         
         // Calculer la différence d'angle dans le bon sens
         double angleDiff = normalizeAngle(maxAngle - minAngle);
         double targetDiff = normalizeAngle(checkAngle - minAngle);
-        std::cout << "TargetDiff: " << targetDiff << " - AngleDiff: " << angleDiff << " for " << obstacleId << " - Min: " << minAngle << " Max: " << maxAngle << std::endl;
-        if (targetDiff < angleDiff) {
+        if (targetDiff > 0 && targetDiff < angleDiff) {
             inShadow = true;
         }
         
         if (inShadow) {
-            // std::cout << "LoS bloquée par la cellule " << obstacleId 
-            //          << " (ombre projetée de " << startCell << " vers " << endCell << ")" << std::endl;
             return false;
         }
     }
