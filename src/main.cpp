@@ -8,7 +8,7 @@
 #include "MapReader.hpp"
 #include <set>
 
-std::set<int> getOccupiedCellsFromArgs(const std::vector<std::string> &args, int startIndex)
+std::set<int> getOccupiedCellsFromArgs(const std::vector<std::string>& args, int startIndex)
 {
     std::set<int> occupiedCells;
     for (size_t i = startIndex; i < args.size(); ++i)
@@ -18,12 +18,12 @@ std::set<int> getOccupiedCellsFromArgs(const std::vector<std::string> &args, int
             int occupiedCellId = std::stoi(args[i]);
             occupiedCells.insert(occupiedCellId);
         }
-        catch (const std::invalid_argument &e)
+        catch (const std::invalid_argument& e)
         {
             std::cerr << "Error: '" << args[i] << "' is not a valid cellId" << std::flush;
             return {};
         }
-        catch (const std::out_of_range &e)
+        catch (const std::out_of_range& e)
         {
             std::cerr << "Error: '" << args[i] << "' too big for cellId" << std::flush;
             return {};
@@ -32,8 +32,8 @@ std::set<int> getOccupiedCellsFromArgs(const std::vector<std::string> &args, int
     return occupiedCells;
 }
 
-int hasFourAdjacentCellsFree(const std::string &programParam, const std::vector<std::string> &args,
-                             const Map &map)
+int hasFourAdjacentCellsFree(const std::string& programParam, const std::vector<std::string>& args,
+    const Map& map)
 {
     (void)programParam; // Ignore programParam
     if (args.size() < 1)
@@ -52,8 +52,8 @@ int hasFourAdjacentCellsFree(const std::string &programParam, const std::vector<
     return 1;
 }
 
-int getNeighbors(const std::string &programParam, const std::vector<std::string> &args,
-                 const Map &map)
+int getNeighbors(const std::string& programParam, const std::vector<std::string>& args,
+    const Map& map)
 {
     (void)programParam; // Ignore programParam
     if (args.size() < 1)
@@ -70,10 +70,10 @@ int getNeighbors(const std::string &programParam, const std::vector<std::string>
             auto neighbor = pair.first;
             bool isFree = cell->isWalkable();
             std::cout << neighbor.cellId << ": " << neighbor.direction << " "
-                      << (isFree ? "Free" : "Not Free") << std::endl;
+                << (isFree ? "Free" : "Not Free") << std::endl;
         }
     }
-    catch (const DfbException &e)
+    catch (const DfbException& e)
     {
         std::cerr << e.what() << std::endl;
         return 1;
@@ -82,8 +82,8 @@ int getNeighbors(const std::string &programParam, const std::vector<std::string>
     return 0;
 }
 
-int isLos(const std::string &programParam, const std::vector<std::string> &args,
-                 const Map &map)
+int isLos(const std::string& programParam, const std::vector<std::string>& args,
+    const Map& map)
 {
     (void)programParam; // Ignore programParam
     if (args.size() < 2)
@@ -103,44 +103,44 @@ int isLos(const std::string &programParam, const std::vector<std::string> &args,
     return 1;
 }
 
-int getLosCells(const std::string &programParam, const std::vector<std::string> &args,
-                const Map &map)
-{
+int getLosCells(const std::string& programParam, const std::vector<std::string>& args,
+    const Map& map) {
+    (void)programParam; // Ignore programParam
     if (args.size() < 1)
     {
         std::cerr << "Usage: getLosCells <startCellId> [occupiedCells...]" << std::endl;
         return 1;
     }
-    
+
     int startCellId;
     try
     {
         startCellId = std::stoi(args[0]);
     }
-    catch (const std::invalid_argument &e)
+    catch (const std::invalid_argument& e)
     {
         std::cerr << "Error: '" << args[0] << "' is not a valid cellId" << std::endl;
         return 1;
     }
-    catch (const std::out_of_range &e)
+    catch (const std::out_of_range& e)
     {
         std::cerr << "Error: '" << args[0] << "' is too big for cellId" << std::endl;
         return 1;
     }
-    
+
     // Vérifier que la cellule de départ existe
     if (!map.cellExists(startCellId))
     {
         std::cerr << "Error: Cell " << startCellId << " does not exist" << std::endl;
         return 1;
     }
-    
+
     // Récupérer les cellules occupées
     std::set<int> occupiedCells = getOccupiedCellsFromArgs(args, 1);
-    
+
     // Collecter toutes les cellules walkable en ligne de vue
     std::vector<int> losCells;
-    
+
     for (size_t i = 0; i < map.getCellCount(); ++i)
     {
         // Ignorer la cellule de départ
@@ -148,7 +148,7 @@ int getLosCells(const std::string &programParam, const std::vector<std::string> 
         {
             continue;
         }
-        
+
         const MapCell* cell = map.getCellByNumber(i);
         if (cell && cell->isWalkable())
         {
@@ -159,7 +159,7 @@ int getLosCells(const std::string &programParam, const std::vector<std::string> 
             }
         }
     }
-    
+
     // Afficher le résultat en JSON
     std::cout << "[";
     for (size_t i = 0; i < losCells.size(); ++i)
@@ -171,11 +171,56 @@ int getLosCells(const std::string &programParam, const std::vector<std::string> 
         std::cout << losCells[i];
     }
     std::cout << "]" << std::flush;
-    
+
     return 0;
 }
 
-int main(int argc, char *argv[])
+int getMapDataJson(const std::string& programParam, const std::vector<std::string>& args, const Map& map) {
+    (void)programParam; // Ignore programParam
+    (void)args; // Ignore args
+    std::cout << "{\"cellsData\":[";
+    for (size_t i = 0; i < map.getCellCount(); ++i)
+    {
+        if (i > 0)
+        {
+            std::cout << ",";
+        }
+        const MapCell* cell = map.getCellByNumber(i);
+        if (cell)
+        {
+            std::cout << "{"
+                << "\"cellNumber\":" << cell->cellNumber << ","
+                << "\"speed\":" << cell->speed << ","
+                << "\"mapChangeData\":" << cell->mapChangeData << ","
+                << "\"moveZone\":" << cell->moveZone << ","
+                << "\"linkedZone\":" << cell->linkedZone << ","
+                << "\"mov\":" << cell->mov << ","
+                << "\"los\":" << cell->los << ","
+                << "\"nonWalkableDuringFight\":" << cell->nonWalkableDuringFight << ","
+                << "\"nonWalkableDuringRP\":" << cell->nonWalkableDuringRP << ","
+                << "\"farmCell\":" << cell->farmCell << ","
+                << "\"visible\":" << cell->visible << ","
+                << "\"havenbagCell\":" << cell->havenbagCell << ","
+                << "\"floor\":" << cell->floor << ","
+                << "\"red\":" << cell->red << ","
+                << "\"blue\":" << cell->blue <<
+                // Pas d'arrow car pas dans MapCell
+                // Pas de print car pas dans MapCell
+                // Pas de operator== car pas dans MapCell
+                // Pas de isWalkable, isFarm, isVisible car pas dans MapCell
+                // Pas de getWalkableStatus car pas dans MapCell
+                // Pas de print car pas dans MapCell
+                // Pas de operator== car pas dans MapCell
+                // Pas de isWalkable, isFarm, isVisible car pas dans MapCell
+                // Pas de getWalkableStatus car pas dans MapCell
+                "}";
+        }
+    }
+    std::cout << "]}" << std::flush;
+    return 0;
+}
+
+int main(int argc, char* argv[])
 {
     if (argc < 2)
     {
@@ -197,6 +242,7 @@ int main(int argc, char *argv[])
     commands.registerCommand("getNeighbors", getNeighbors);
     commands.registerCommand("isLos", isLos);
     commands.registerCommand("getLosCells", getLosCells);
+    commands.registerCommand("getMapDataJson", getMapDataJson);
 
     if (argc < 3)
     {
