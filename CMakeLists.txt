@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 # Nom du projet
 project(MapUtils 
     VERSION 1.0.0
-    DESCRIPTION "Map Utils for dofus"
+    DESCRIPTION "Map and WorldGraph Utils for dofus"
     LANGUAGES CXX)
 
 # Standard C++
@@ -36,7 +36,7 @@ set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # Créer une bibliothèque statique pour MapCell
 add_library(MapCellLib STATIC
     ${SRC_DIR}/errors/DfbException.hpp
-
+    ${SRC_DIR}/Direction.hpp
     ${SRC_DIR}/Commands.hpp
     ${SRC_DIR}/MapCell.cpp
     ${SRC_DIR}/MapCell.hpp
@@ -46,29 +46,49 @@ add_library(MapCellLib STATIC
     ${SRC_DIR}/MapReader.hpp
     ${SRC_DIR}/MapReader.cpp
     ${SRC_DIR}/Neighbor.hpp
-    
 )
 
-# Propriétés de la bibliothèque
+# Créer une bibliothèque statique pour WorldGraph
+add_library(WorldGraphLib STATIC
+    ${SRC_DIR}/Direction.hpp
+    ${SRC_DIR}/WorldGraph.hpp
+    ${SRC_DIR}/WorldGraph.cpp
+    ${SRC_DIR}/WorldGraphReader.hpp
+    ${SRC_DIR}/WorldGraphReader.cpp
+    ${SRC_DIR}/WorldGraphCommands.cpp
+)
+
+# Propriétés de la bibliothèque MapCell
 target_include_directories(MapCellLib PUBLIC 
     ${SRC_DIR}
-    ${SRC_DIR}/errors  # Ajouter cette ligne
+    ${SRC_DIR}/errors
 )
+
+# Propriétés de la bibliothèque WorldGraph
+target_include_directories(WorldGraphLib PUBLIC 
+    ${SRC_DIR}
+)
+
+# WorldGraphLib a besoin des headers de MapCellLib pour Commands.hpp
+target_link_libraries(WorldGraphLib PUBLIC MapCellLib)
 
 # Exécutable principal
 add_executable(map_utils ${SRC_DIR}/main.cpp)
 
-# Lier la bibliothèque à l'exécutable
-target_link_libraries(map_utils PRIVATE MapCellLib)
+# Lier les bibliothèques à l'exécutable
+target_link_libraries(map_utils PRIVATE MapCellLib WorldGraphLib)
 
 # Installation (optionnelle)
 install(TARGETS map_utils 
     RUNTIME DESTINATION bin)
 
-install(FILES ${SRC_DIR}/MapCell.hpp 
+install(FILES 
+    ${SRC_DIR}/MapCell.hpp 
+    ${SRC_DIR}/WorldGraph.hpp
+    ${SRC_DIR}/WorldGraphReader.hpp
     DESTINATION include)
 
-install(TARGETS MapCellLib
+install(TARGETS MapCellLib WorldGraphLib
     ARCHIVE DESTINATION lib)
 
 # Affichage d'informations sur la configuration

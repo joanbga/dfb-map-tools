@@ -1,18 +1,7 @@
 #pragma once
 
 #include <string>
-
-enum Direction
-{
-    EAST,
-    SOUTH_EAST,
-    SOUTH,
-    SOUTH_WEST,
-    WEST,
-    NORTH_WEST,
-    NORTH,
-    NORTH_EST
-};
+#include "Direction.hpp"
 
 /**
  * Structure représentant un voisin avec sa direction

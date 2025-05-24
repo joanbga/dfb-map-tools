@@ -1,13 +1,28 @@
 #include <iostream>
 #include <vector>
+#include <string>
+#include <memory>
 
 #include "Commands.hpp"
 #include "DfbException.hpp"
 #include "Map.hpp"
 #include "MapCell.hpp"
 #include "MapReader.hpp"
+#include "WorldGraph.hpp"
 #include <set>
 
+// Déclaration des fonctions de commandes existantes
+std::set<int> getOccupiedCellsFromArgs(const std::vector<std::string>& args, int startIndex);
+int hasFourAdjacentCellsFree(const std::string& programParam, const std::vector<std::string>& args, const Map& map);
+int getNeighbors(const std::string& programParam, const std::vector<std::string>& args, const Map& map);
+int isLos(const std::string& programParam, const std::vector<std::string>& args, const Map& map);
+int getLosCells(const std::string& programParam, const std::vector<std::string>& args, const Map& map);
+int getMapDataJson(const std::string& programParam, const std::vector<std::string>& args, const Map& map);
+
+// Déclaration pour enregistrer les commandes WorldGraph
+void registerWorldGraphCommands(Commands& commands, const WorldGraph& worldGraph);
+
+// Implémentation des commandes Map existantes...
 std::set<int> getOccupiedCellsFromArgs(const std::vector<std::string>& args, int startIndex)
 {
     std::set<int> occupiedCells;
@@ -35,7 +50,7 @@ std::set<int> getOccupiedCellsFromArgs(const std::vector<std::string>& args, int
 int hasFourAdjacentCellsFree(const std::string& programParam, const std::vector<std::string>& args,
     const Map& map)
 {
-    (void)programParam; // Ignore programParam
+    (void)programParam;
     if (args.size() < 1)
     {
         std::cerr << "Usage: hasFourAdjacentCellsFree <cellId> [occupiedCells...]" << std::endl;
@@ -55,7 +70,7 @@ int hasFourAdjacentCellsFree(const std::string& programParam, const std::vector<
 int getNeighbors(const std::string& programParam, const std::vector<std::string>& args,
     const Map& map)
 {
-    (void)programParam; // Ignore programParam
+    (void)programParam;
     if (args.size() < 1)
     {
         std::cerr << "Usage: getNeighbors <cellId>" << std::endl;
@@ -85,7 +100,7 @@ int getNeighbors(const std::string& programParam, const std::vector<std::string>
 int isLos(const std::string& programParam, const std::vector<std::string>& args,
     const Map& map)
 {
-    (void)programParam; // Ignore programParam
+    (void)programParam;
     if (args.size() < 2)
     {
         std::cerr << "Usage: isLos <startCellId> <endCellId> [occupiedCells...]" << std::endl;
@@ -105,7 +120,7 @@ int isLos(const std::string& programParam, const std::vector<std::string>& args,
 
 int getLosCells(const std::string& programParam, const std::vector<std::string>& args,
     const Map& map) {
-    (void)programParam; // Ignore programParam
+    (void)programParam;
     if (args.size() < 1)
     {
         std::cerr << "Usage: getLosCells <startCellId> [occupiedCells...]" << std::endl;
@@ -128,22 +143,17 @@ int getLosCells(const std::string& programParam, const std::vector<std::string>&
         return 1;
     }
 
-    // Vérifier que la cellule de départ existe
     if (!map.cellExists(startCellId))
     {
         std::cerr << "Error: Cell " << startCellId << " does not exist" << std::endl;
         return 1;
     }
 
-    // Récupérer les cellules occupées
     std::set<int> occupiedCells = getOccupiedCellsFromArgs(args, 1);
-
-    // Collecter toutes les cellules walkable en ligne de vue
     std::vector<int> losCells;
 
     for (size_t i = 0; i < map.getCellCount(); ++i)
     {
-        // Ignorer la cellule de départ
         if (static_cast<int>(i) == startCellId)
         {
             continue;
@@ -152,7 +162,6 @@ int getLosCells(const std::string& programParam, const std::vector<std::string>&
         const MapCell* cell = map.getCellByNumber(i);
         if (cell && cell->isWalkable())
         {
-            // Vérifier si la cellule est en ligne de vue
             if (map.isLos(startCellId, i, occupiedCells))
             {
                 losCells.push_back(i);
@@ -160,7 +169,6 @@ int getLosCells(const std::string& programParam, const std::vector<std::string>&
         }
     }
 
-    // Afficher le résultat en JSON
     std::cout << "[";
     for (size_t i = 0; i < losCells.size(); ++i)
     {
@@ -176,8 +184,8 @@ int getLosCells(const std::string& programParam, const std::vector<std::string>&
 }
 
 int getMapDataJson(const std::string& programParam, const std::vector<std::string>& args, const Map& map) {
-    (void)programParam; // Ignore programParam
-    (void)args; // Ignore args
+    (void)programParam;
+    (void)args;
     std::cout << "{\"cellsData\":[";
     for (size_t i = 0; i < map.getCellCount(); ++i)
     {
@@ -204,15 +212,6 @@ int getMapDataJson(const std::string& programParam, const std::vector<std::strin
                 << "\"floor\":" << cell->floor << ","
                 << "\"red\":" << cell->red << ","
                 << "\"blue\":" << cell->blue <<
-                // Pas d'arrow car pas dans MapCell
-                // Pas de print car pas dans MapCell
-                // Pas de operator== car pas dans MapCell
-                // Pas de isWalkable, isFarm, isVisible car pas dans MapCell
-                // Pas de getWalkableStatus car pas dans MapCell
-                // Pas de print car pas dans MapCell
-                // Pas de operator== car pas dans MapCell
-                // Pas de isWalkable, isFarm, isVisible car pas dans MapCell
-                // Pas de getWalkableStatus car pas dans MapCell
                 "}";
         }
     }
@@ -220,35 +219,86 @@ int getMapDataJson(const std::string& programParam, const std::vector<std::strin
     return 0;
 }
 
+void printUsage(const char* programName) {
+    std::cout << "Usage: " << programName << " <type> <bin path> <command> [args...]" << std::endl;
+    std::cout << "  type: 'map' or 'worldgraph'" << std::endl;
+    std::cout << "\nExamples:" << std::endl;
+    std::cout << "  " << programName << " map /path/to/map.bin getNeighbors 123" << std::endl;
+    std::cout << "  " << programName << " worldgraph /path/to/worldgraph.bin findMap 123456" << std::endl;
+}
+
 int main(int argc, char* argv[])
 {
-    if (argc < 2)
-    {
-        std::cout << "Usage: " << argv[0] << " <bin path> <command> [args...]" << std::endl;
-        return 1;
-    }
-
-    std::vector<MapCell> cells = MapReader::readMapFromBinary(argv[1]);
-    if (cells.empty())
-    {
-        return 1;
-    }
-    Map map = Map(cells);
-    // Créer l'instance Commands
-    Commands commands(argc, argv, map);
-
-    // Enregistrer les commandes
-    commands.registerCommand("hasFourAdjacentCellsFree", hasFourAdjacentCellsFree);
-    commands.registerCommand("getNeighbors", getNeighbors);
-    commands.registerCommand("isLos", isLos);
-    commands.registerCommand("getLosCells", getLosCells);
-    commands.registerCommand("getMapDataJson", getMapDataJson);
-
+    std::cout << "DFB Map Tools - Version 1.0" << std::endl;
     if (argc < 3)
     {
-        commands.listCommands();
+        printUsage(argv[0]);
         return 1;
     }
 
-    return commands.execute(argc, argv);
+    std::string type = argv[1];
+    std::string binPath = argv[2];
+
+    // Map vide par défaut (pour les commandes worldgraph qui ne l'utilisent pas)
+    Map emptyMap = Map(std::vector<MapCell>{});
+
+    if (type == "map") {
+        // Mode Map - comportement original
+        std::vector<MapCell> cells = MapReader::readMapFromBinary(binPath);
+        if (cells.empty())
+        {
+            return 1;
+        }
+        Map map = Map(cells);
+
+        // Créer l'instance Commands
+        Commands commands(argc - 2, argv + 2, map);
+
+        // Enregistrer les commandes Map
+        commands.registerCommand("hasFourAdjacentCellsFree", hasFourAdjacentCellsFree);
+        commands.registerCommand("getNeighbors", getNeighbors);
+        commands.registerCommand("isLos", isLos);
+        commands.registerCommand("getLosCells", getLosCells);
+        commands.registerCommand("getMapDataJson", getMapDataJson);
+
+        if (argc < 4)
+        {
+            std::cout << "Available map commands:" << std::endl;
+            commands.listCommands();
+            return 1;
+        }
+
+        // Ajuster les arguments pour Commands (enlever type et binPath)
+        return commands.execute(argc - 2, argv + 2);
+
+    } else if (type == "worldgraph") {
+        // Mode WorldGraph
+        std::unique_ptr<WorldGraph> worldGraph = std::make_unique<WorldGraph>();
+
+        if (!worldGraph->loadFromBinary(binPath)) {
+            std::cerr << "Failed to load worldgraph from " << binPath << std::endl;
+            return 1;
+        }
+
+        // Créer l'instance Commands avec la map vide
+        Commands commands(argc - 2, argv + 2, emptyMap);
+
+        // Enregistrer les commandes WorldGraph
+        registerWorldGraphCommands(commands, *worldGraph);
+
+        if (argc < 4)
+        {
+            std::cout << "Available worldgraph commands:" << std::endl;
+            commands.listCommands();
+            return 1;
+        }
+
+        // Ajuster les arguments pour Commands (enlever type et binPath)
+        return commands.execute(argc - 2, argv + 2);
+
+    } else {
+        std::cerr << "Error: Unknown type '" << type << "'. Use 'map' or 'worldgraph'." << std::endl;
+        printUsage(argv[0]);
+        return 1;
+    }
 }

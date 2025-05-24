@@ -4,6 +4,7 @@
 #include <unordered_set>
 
 #include "Neighbor.hpp"
+#include "Direction.hpp"
 #include "errors/DfbException.hpp"
 #include <queue>
 
@@ -73,26 +74,26 @@ std::vector<Neighbor> Map::getCellNeighbors(int cellId) const
     if (y % 2 == 0)
     { // Ligne paire
         neighbors = {
-            {cellId + 1, Direction::EAST},                // Est
-            {cellId + width_, Direction::SOUTH_EAST},     // Sud-Est
-            {cellId + width_ * 2, Direction::SOUTH},      // Sud
-            {cellId + width_ - 1, Direction::SOUTH_WEST}, // Sud-Ouest
-            {cellId - 1, Direction::WEST},                // Ouest
-            {cellId - width_ - 1, Direction::NORTH_WEST}, // Nord-Ouest
-            {cellId - width_ * 2, Direction::NORTH},      // Nord
-            {cellId - width_, Direction::NORTH_EST},      // Nord-Est
+            {cellId + 1, Direction::DIRECTION_EAST},                // Est
+            {cellId + width_, Direction::DIRECTION_SOUTH_EAST},     // Sud-Est
+            {cellId + width_ * 2, Direction::DIRECTION_SOUTH},      // Sud
+            {cellId + width_ - 1, Direction::DIRECTION_SOUTH_WEST}, // Sud-Ouest
+            {cellId - 1, Direction::DIRECTION_WEST},                // Ouest
+            {cellId - width_ - 1, Direction::DIRECTION_NORTH_WEST}, // Nord-Ouest
+            {cellId - width_ * 2, Direction::DIRECTION_NORTH},      // Nord
+            {cellId - width_, Direction::DIRECTION_NORTH_EAST},      // Nord-Est
         };
     } else
     { // Ligne impaire
         neighbors = {
-            {cellId + 1, Direction::EAST},                // Est
-            {cellId + width_ + 1, Direction::SOUTH_EAST}, // Sud-Est
-            {cellId + width_ * 2, Direction::SOUTH},      // Sud
-            {cellId + width_, Direction::SOUTH_WEST},     // Sud-Ouest
-            {cellId - 1, Direction::WEST},                // Ouest
-            {cellId - width_, Direction::NORTH_WEST},     // Nord-Ouest
-            {cellId - width_ * 2, Direction::NORTH},      // Nord
-            {cellId - width_ + 1, Direction::NORTH_EST},  // Nord-Est
+            {cellId + 1, Direction::DIRECTION_EAST},                // Est
+            {cellId + width_ + 1, Direction::DIRECTION_SOUTH_EAST}, // Sud-Est
+            {cellId + width_ * 2, Direction::DIRECTION_SOUTH},      // Sud
+            {cellId + width_, Direction::DIRECTION_SOUTH_WEST},     // Sud-Ouest
+            {cellId - 1, Direction::DIRECTION_WEST},                // Ouest
+            {cellId - width_, Direction::DIRECTION_NORTH_WEST},     // Nord-Ouest
+            {cellId - width_ * 2, Direction::DIRECTION_NORTH},      // Nord
+            {cellId - width_ + 1, Direction::DIRECTION_NORTH_EAST},  // Nord-Est
         };
     }
 
@@ -116,14 +117,14 @@ std::vector<Neighbor> Map::getCellNeighbors(int cellId) const
 bool Map::isValidNeighbor(int neighborId, int originalX, int originalY, Direction direction) const
 {
     // Pour les voisins Nord et Sud qui sont à 2 lignes de distance
-    if (direction == Direction::NORTH || direction == Direction::SOUTH)
+    if (direction == Direction::DIRECTION_NORTH || direction == Direction::DIRECTION_SOUTH)
     {
-        if (direction == Direction::NORTH && originalY >= 2)
+        if (direction == Direction::DIRECTION_NORTH && originalY >= 2)
         { // Pour le Nord
             int ny = originalY - 2;
             int nx = originalX;
             return getCellNumber(nx, ny) == neighborId;
-        } else if (direction == Direction::SOUTH && originalY + 2 < height_)
+        } else if (direction == Direction::DIRECTION_SOUTH && originalY + 2 < height_)
         { // Pour le Sud
             int ny = originalY + 2;
             int nx = originalX;
@@ -155,8 +156,8 @@ std::vector<std::pair<Neighbor, const MapCell*>> Map::getNeighborCells(int cellN
     if (!includeDiagonal)
     {
         std::unordered_set<Direction> nonDiagonalDirections = {
-            Direction::SOUTH_EAST, Direction::SOUTH_WEST, Direction::NORTH_WEST,
-            Direction::NORTH_EST };
+            Direction::DIRECTION_SOUTH_EAST, Direction::DIRECTION_SOUTH_WEST, Direction::DIRECTION_NORTH_WEST,
+            Direction::DIRECTION_NORTH_EAST };
         neighbors.erase(std::remove_if(neighbors.begin(), neighbors.end(),
             [&nonDiagonalDirections](const Neighbor& n)
             {
@@ -208,7 +209,7 @@ bool Map::hasFourAdjacentCellsFree(int cellNumber, std::set<int> occupiedCells) 
 
     // Filtrer pour ne garder que les directions cardinales (non-diagonales)
     std::unordered_set<Direction> cardinalDirections = {
-        Direction::SOUTH_EAST, Direction::SOUTH_WEST, Direction::NORTH_WEST, Direction::NORTH_EST };
+        Direction::DIRECTION_SOUTH_EAST, Direction::DIRECTION_SOUTH_WEST, Direction::DIRECTION_NORTH_WEST, Direction::DIRECTION_NORTH_EAST };
     std::vector<Neighbor> cardinalNeighbors;
 
     for (const auto& neighbor : neighbors)
