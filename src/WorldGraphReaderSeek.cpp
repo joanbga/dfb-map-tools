@@ -1,119 +1,142 @@
-#include "WorldGraphReader.hpp"
-#include "WorldGraph.hpp"
-#include <fstream>
-#include <iostream>
-// #include <istream>
-#include <vector>
+// #include "WorldGraphReader.hpp"
+// #include "WorldGraph.hpp"
+// #include <fstream>
+// #include <iostream>
+// #include <vector>
+// #include <cstring>
 
-bool WorldGraphReader::validateHeader(const FileHeader& header) {
-    if (header.magic != MAGIC) {
-        std::cerr << "Invalid magic number: " << std::hex << header.magic
-            << " (expected " << MAGIC << ")" << std::dec << std::endl;
-        return false;
-    }
+// bool WorldGraphReader::validateHeader(const FileHeader& header) {
+//     if (header.magic != MAGIC) {
+//         std::cerr << "Invalid magic number: " << std::hex << header.magic
+//             << " (expected " << MAGIC << ")" << std::dec << std::endl;
+//         return false;
+//     }
 
-    if (header.version != SUPPORTED_VERSION) {
-        std::cerr << "Unsupported version: " << header.version
-            << " (supported: " << SUPPORTED_VERSION << ")" << std::endl;
-        return false;
-    }
+//     if (header.version != SUPPORTED_VERSION) {
+//         std::cerr << "Unsupported version: " << header.version
+//             << " (supported: " << SUPPORTED_VERSION << ")" << std::endl;
+//         return false;
+//     }
 
-    return true;
-}
+//     return true;
+// }
 
-bool WorldGraphReader::readWorldGraphFromBinary(const std::string& filepath, WorldGraph& worldGraph) {
-    // std::cerr << "Attempting to open file: " << filepath << std::endl;
+// bool WorldGraphReader::readWorldGraphFromBinary(const std::string& filepath, WorldGraph& worldGraph) {
+//     // std::cerr << "Attempting to open file: " << filepath << std::endl;
+//     std::cerr.flush();
 
-    std::ifstream file(filepath, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << filepath << std::endl;
-        return false;
-    }
+//     // Lire tout le fichier en mémoire pour éviter les problèmes de seekg
+//     std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+//     if (!file.is_open()) {
+//         std::cerr << "Failed to open file: " << filepath << std::endl;
+//         std::cerr.flush();
+//         return false;
+//     }
 
-    // Lire le header
-    FileHeader header;
-    file.read(reinterpret_cast<char*>(&header), sizeof(FileHeader));
+//     size_t fileSize = file.tellg();
+//     file.seekg(0, std::ios::beg);
 
-    if (!file.good()) {
-        std::cerr << "Failed to read header from file" << std::endl;
-        return false;
-    }
+//     // Lire tout le fichier en mémoire
+//     std::vector<uint8_t> buffer(fileSize);
+//     file.read(reinterpret_cast<char*>(buffer.data()), fileSize);
+//     file.close();
 
-    if (!validateHeader(header)) {
-        return false;
-    }
+//     // Parser depuis la mémoire
+//     size_t pos = 0;
 
-    // std::cout << "Loading WorldGraph with " << header.mapCount << " maps..." << std::endl;
+//     // Lire le header
+//     if (fileSize < sizeof(FileHeader)) {
+//         std::cerr << "File too small for header" << std::endl;
+//         return false;
+//     }
 
-    // Se positionner à l'index
-    file.seekg(header.indexOffset);
+//     FileHeader header;
+//     std::memcpy(&header, buffer.data() + pos, sizeof(FileHeader));
+//     pos += sizeof(FileHeader);
 
-    // Lire l'index
-    std::vector<IndexEntry> index(header.mapCount);
-    file.read(reinterpret_cast<char*>(index.data()),
-        header.mapCount * sizeof(IndexEntry));
+//     if (!validateHeader(header)) {
+//         return false;
+//     }
 
-    // Lire les données de chaque map
-    for (const auto& entry : index) {
-        file.seekg(entry.dataOffset);
+//     // std::cout << "Loading WorldGraph with " << header.mapCount << " maps..." << std::endl;
+//     std::cout.flush();
 
-        WorldGraphMapData mapData;
-        mapData.mapId = entry.mapId;
+//     // Lire l'index
+//     if (header.indexOffset >= fileSize) {
+//         std::cerr << "Invalid index offset" << std::endl;
+//         return false;
+//     }
 
-        // Lire position
-        file.read(reinterpret_cast<char*>(&mapData.position.x), sizeof(int8_t));
-        file.read(reinterpret_cast<char*>(&mapData.position.y), sizeof(int8_t));
+//     pos = header.indexOffset;
+//     std::vector<IndexEntry> index(header.mapCount);
+//     std::memcpy(index.data(), buffer.data() + pos, header.mapCount * sizeof(IndexEntry));
 
-        // Lire nombre d'edges
-        uint16_t edgeCount;
-        file.read(reinterpret_cast<char*>(&edgeCount), sizeof(uint16_t));
+//     // Lire les données de chaque map
+//     for (const auto& entry : index) {
+//         if (entry.dataOffset >= fileSize) {
+//             std::cerr << "Invalid data offset for map " << entry.mapId << std::endl;
+//             continue;
+//         }
 
-        // Lire les edges
-        mapData.edges.reserve(edgeCount);
-        for (uint16_t i = 0; i < edgeCount; ++i) {
-            WorldGraphEdge edge;
+//         pos = entry.dataOffset;
 
-            // Lire toMapId et zoneId
-            file.read(reinterpret_cast<char*>(&edge.toMapId), sizeof(uint32_t));
-            file.read(reinterpret_cast<char*>(&edge.zoneId), sizeof(uint8_t));
+//         WorldGraphMapData mapData;
+//         mapData.mapId = entry.mapId;
 
-            // Lire nombre de transitions
-            uint8_t transitionCount;
-            file.read(reinterpret_cast<char*>(&transitionCount), sizeof(uint8_t));
+//         // Lire position
+//         mapData.position.x = *reinterpret_cast<const int8_t*>(buffer.data() + pos);
+//         pos += sizeof(int8_t);
+//         mapData.position.y = *reinterpret_cast<const int8_t*>(buffer.data() + pos);
+//         pos += sizeof(int8_t);
 
-            // Lire les transitions
-            edge.transitions.reserve(transitionCount);
-            for (uint8_t j = 0; j < transitionCount; ++j) {
-                WorldGraphEdgeTransition transition;
+//         // Lire nombre d'edges
+//         uint16_t edgeCount = *reinterpret_cast<const uint16_t*>(buffer.data() + pos);
+//         pos += sizeof(uint16_t);
 
-                file.read(reinterpret_cast<char*>(&transition.type), sizeof(uint8_t));
-                file.read(reinterpret_cast<char*>(&transition.direction), sizeof(uint8_t));
-                file.read(reinterpret_cast<char*>(&transition.skillId), sizeof(int16_t));
-                file.read(reinterpret_cast<char*>(&transition.transitionMapId), sizeof(uint32_t));
-                file.read(reinterpret_cast<char*>(&transition.cellId), sizeof(uint16_t));
+//         // Lire les edges
+//         mapData.edges.reserve(edgeCount);
+//         for (uint16_t i = 0; i < edgeCount; ++i) {
+//             WorldGraphEdge edge;
 
-                edge.transitions.push_back(transition);
-            }
+//             edge.toMapId = *reinterpret_cast<const uint32_t*>(buffer.data() + pos);
+//             pos += sizeof(uint32_t);
+//             edge.zoneId = *reinterpret_cast<const uint8_t*>(buffer.data() + pos);
+//             pos += sizeof(uint8_t);
 
-            mapData.edges.push_back(edge);
-        }
+//             uint8_t transitionCount = *reinterpret_cast<const uint8_t*>(buffer.data() + pos);
+//             pos += sizeof(uint8_t);
 
-        // Stocker dans les structures internes de WorldGraph
-        worldGraph.m_mapData[mapData.mapId] = mapData;
-        worldGraph.m_mapCoordinates[mapData.mapId] = mapData.position;
+//             edge.transitions.reserve(transitionCount);
+//             for (uint8_t j = 0; j < transitionCount; ++j) {
+//                 WorldGraphEdgeTransition transition;
 
-        // Créer la liste d'adjacence pour le graphe
-        if (!mapData.edges.empty()) {
-            worldGraph.m_worldGraph[mapData.mapId] = mapData.edges;
-        }
-    }
+//                 transition.type = *reinterpret_cast<const uint8_t*>(buffer.data() + pos);
+//                 pos += sizeof(uint8_t);
+//                 transition.direction = *reinterpret_cast<const uint8_t*>(buffer.data() + pos);
+//                 pos += sizeof(uint8_t);
+//                 transition.skillId = *reinterpret_cast<const int16_t*>(buffer.data() + pos);
+//                 pos += sizeof(int16_t);
+//                 transition.transitionMapId = *reinterpret_cast<const uint32_t*>(buffer.data() + pos);
+//                 pos += sizeof(uint32_t);
+//                 transition.cellId = *reinterpret_cast<const uint16_t*>(buffer.data() + pos);
+//                 pos += sizeof(uint16_t);
 
-    if (!file.good() && !file.eof()) {
-        std::cerr << "Error reading file" << std::endl;
-        std::cerr.flush();
-        return false;
-    }
+//                 edge.transitions.push_back(transition);
+//             }
 
-    // std::cout << "WorldGraph loaded successfully!" << std::endl;
-    return true;
-}
+//             mapData.edges.push_back(edge);
+//         }
+
+//         // Stocker dans les structures internes
+//         worldGraph.m_mapData[mapData.mapId] = mapData;
+//         worldGraph.m_mapCoordinates[mapData.mapId] = mapData.position;
+
+//         if (!mapData.edges.empty()) {
+//             worldGraph.m_worldGraph[mapData.mapId] = mapData.edges;
+//         }
+//     }
+
+//     // std::cout << "WorldGraph loaded successfully!" << std::endl;
+//     std::cout.flush();
+//     return true;
+// }

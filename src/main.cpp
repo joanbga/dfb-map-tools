@@ -11,6 +11,7 @@
 #include "MapReader.hpp"
 #include "WorldGraph.hpp"
 #include "WorldGraphCommands.hpp"
+#include "WorldGraphCommandsPathfinding.hpp"
 #include "MapCommands.hpp"
 
 
@@ -72,7 +73,40 @@ int main(int argc, char* argv[])
         // std::cout << "Loading worldgraph from: " << binPath << std::endl;
         WorldGraph worldGraph = WorldGraph();
 
-        if (!worldGraph.loadFromBinary(binPath)) {
+        // Déterminer quelle commande sera exécutée
+        std::string command = (argc >= 4) ? argv[3] : "";
+
+        // Commandes qui nécessitent seulement l'index
+        std::set<std::string> indexOnlyCommands = {
+            "listMapsInArea",
+            "getWorldGraphStats",  // Partiellement - pour edgeCount
+            "findMap",  // Charge une seule map à la demande
+            "getNeighborsDetailed"
+        };
+
+        // Commandes qui nécessitent le chargement complet ou partiel
+        std::set<std::string> pathfindingCommands = {
+            "pathfinding",  // Charge les maps au fur et à mesure
+            "getNeighborsDetailed"
+        };
+
+        bool loadSuccess = false;
+
+        // Si la commande nécessite seulement l'index ou charge à la demande
+        if (indexOnlyCommands.find(command) != indexOnlyCommands.end() ||
+            pathfindingCommands.find(command) != pathfindingCommands.end() ||
+            command.empty()) {
+            loadSuccess = worldGraph.loadIndex(binPath);
+            if (loadSuccess && command.empty()) {
+                std::cout << "WorldGraph index loaded successfully ("
+                    << worldGraph.getMapCount() << " maps)" << std::endl;
+            }
+        } else {
+            // Pour les autres commandes, charger tout (comportement par défaut)
+            loadSuccess = worldGraph.loadFromBinary(binPath);
+        }
+
+        if (!loadSuccess) {
             std::cerr << "Failed to load worldgraph from " << binPath << std::flush;
             return 1;
         }
@@ -86,6 +120,7 @@ int main(int argc, char* argv[])
         commands.registerCommand("listMapsInArea", listMapsInArea);
         commands.registerCommand("getNeighborsDetailed", getNeighborsDetailed);
         commands.registerCommand("countMapWithPois", countMapWithPois);
+        commands.registerCommand("pathfinding", pathfinding);
 
         if (argc < 4)
         {

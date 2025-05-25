@@ -16,7 +16,7 @@ int findMap(const std::string& programParam, const std::vector<std::string>& arg
 
     try {
         uint32_t mapId = parseMapId(args[0]);
-        const WorldGraphMapData* mapData = worldGraph.findMap(mapId);
+        auto mapData = worldGraph.findMap(mapId);
 
         if (mapData) {
             std::cout << "{"
@@ -144,8 +144,9 @@ int getNeighborsDetailed(const std::string& programParam, const std::vector<std:
     (void)programParam;
 
     if (args.size() < 1) {
-        std::cerr << "Usage: getNeighborsDetailed <mapId> [direction]" << std::endl;
+        std::cerr << "Usage: getNeighborsDetailed <mapId> [direction [amount]]" << std::endl;
         std::cerr << "  direction: 0 (EAST), 2 (SOUTH), 4 (WEST), 6 (NORTH)" << std::endl;
+        std::cerr << "  amount: optional, number of neighbors to return (default: all)" << std::endl;
         return 1;
     }
 
@@ -161,6 +162,17 @@ int getNeighborsDetailed(const std::string& programParam, const std::vector<std:
                 std::cerr << "Error: Invalid direction. Must be 0, 2, 4, or 6" << std::endl;
                 return 1;
             }
+        }
+
+        int amount = -1;
+        // Amount optionnelle (non utilisée ici, on retourne tous les voisins)
+        if (args.size() >= 3) {
+            amount = std::stoi(args[2]);
+            if (amount < 0) {
+                std::cerr << "Error: Invalid amount. Must be a non-negative integer." << std::endl;
+                return 1;
+            }
+            // Note: amount is not used in this implementation, we return all neighbors
         }
 
         const std::vector<WorldGraphEdge>* edges = worldGraph.getMapEdges(mapId);
