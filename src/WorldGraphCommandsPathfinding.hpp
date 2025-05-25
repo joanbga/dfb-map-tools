@@ -17,7 +17,7 @@ struct PathNode {
     uint32_t mapId;
     uint32_t parentMapId;
     int direction;  // -1 pour téléportation, 0-7 pour marche
-    int cellId; // -1 pour téléportation, sinon l'ID de la cellule
+    int cellId;     // cellId pour marche, -1 pour téléportation
     bool isTeleport;
     double gCost;  // Coût depuis le départ
     double hCost;  // Heuristique vers l'arrivée
@@ -33,10 +33,10 @@ struct PathNodeCompare {
 
 // Structure pour le résultat du path
 struct PathStep {
-    uint32_t mapId;
-    std::string type;  // "teleport" ou "walk"
+    uint32_t toMapId;
+    int cellId;
+    std::string type;  // "teleport", "walk", ou "start"
     int direction;     // -1 pour teleport, 0-7 pour walk
-    int cellId;  // -1 pour teleport, sinon l'ID de la cellule
 };
 
 // Fonction helper pour parser un mapId
@@ -47,20 +47,17 @@ inline double calculateHeuristic(Vec2 from, Vec2 to) {
     return std::abs(from.x - to.x) + std::abs(from.y - to.y);
 }
 
-// Fonction principale de pathfinding
-std::vector<PathStep> findPath(const WorldGraph& worldGraph,
+// Fonction de pathfinding basique sans téléportation
+std::vector<PathStep> findBasicPath(const WorldGraph& worldGraph,
     uint32_t startMapId,
-    uint32_t endMapId,
-    const std::unordered_set<uint32_t>& teleportMaps) {
+    uint32_t endMapId) {
 
-    // Vérifier que les maps de départ et d'arrivée existent
     if (!worldGraph.mapExists(startMapId) || !worldGraph.mapExists(endMapId)) {
         return {};
     }
 
-    // Si départ == arrivée
     if (startMapId == endMapId) {
-        return { {startMapId, "start", -1, -1} };
+        return { {startMapId, -1, "start", -1} };
     }
 
     // Structures pour A*
@@ -71,7 +68,7 @@ std::vector<PathStep> findPath(const WorldGraph& worldGraph,
     // Créer le nœud de départ
     PathNode* startNode = new PathNode{
         startMapId,
-        0,  // pas de parent
+        0,
         -1,
         -1,
         false,
@@ -82,76 +79,46 @@ std::vector<PathStep> findPath(const WorldGraph& worldGraph,
     allNodes[startMapId] = startNode;
     openSet.push(startNode);
 
+    PathNode* endNode = nullptr;
+
     // A* algorithm
     while (!openSet.empty()) {
-        // Récupérer le nœud avec le plus petit fCost
         PathNode* currentNode = openSet.top();
         openSet.pop();
 
-        // Si on a atteint la destination
         if (currentNode->mapId == endMapId) {
-            // Reconstruire le chemin
-            std::vector<PathStep> path;
-            uint32_t current = endMapId;
-
-            while (current != 0) {
-                PathNode* node = allNodes[current];
-                std::string type = node->isTeleport ? "teleport" : "walk";
-                path.push_back({ current, type, node->direction, node->cellId });
-
-                if (current == startMapId) break;
-                current = node->parentMapId;
-            }
-
-            // Nettoyer la mémoire
-            for (auto& pair : allNodes) {
-                delete pair.second;
-            }
-
-            // Inverser le chemin pour avoir départ -> arrivée
-            std::reverse(path.begin(), path.end());
-
-            // Corriger le type du premier élément
-            if (!path.empty()) {
-                path[0].type = "start";
-            }
-
-            return path;
+            endNode = currentNode;
+            break;
         }
 
-        // Marquer comme visité
         closedSet.insert(currentNode->mapId);
 
         // Explorer les voisins par marche
         const std::vector<WorldGraphEdge>* edges = worldGraph.getMapEdges(currentNode->mapId);
         if (edges) {
             for (const auto& edge : *edges) {
-                // Skip si déjà visité
                 if (closedSet.find(edge.toMapId) != closedSet.end()) {
                     continue;
                 }
 
-                // Prendre la première transition valide (on pourrait optimiser)
                 if (edge.transitions.empty()) continue;
 
-                int direction = edge.transitions[0].direction;
-                int cellId = edge.transitions[0].cellId;
-                double newGCost = currentNode->gCost + 1.0;  // Coût de marche = 1
+                // Utiliser la première transition
+                const auto& transition = edge.transitions[0];
+                double newGCost = currentNode->gCost + 1.0;
 
-                // Vérifier si on a déjà un meilleur chemin vers ce nœud
                 auto it = allNodes.find(edge.toMapId);
                 if (it != allNodes.end() && it->second->gCost <= newGCost) {
                     continue;
                 }
 
-                // Créer ou mettre à jour le nœud
                 PathNode* neighborNode;
                 if (it == allNodes.end()) {
                     neighborNode = new PathNode{
                         edge.toMapId,
                         currentNode->mapId,
-                        direction,
-                        cellId,
+                        transition.direction,
+                        transition.cellId,
                         false,
                         newGCost,
                         calculateHeuristic(worldGraph.getMapCoordinates(edge.toMapId),
@@ -161,7 +128,8 @@ std::vector<PathStep> findPath(const WorldGraph& worldGraph,
                 } else {
                     neighborNode = it->second;
                     neighborNode->parentMapId = currentNode->mapId;
-                    neighborNode->direction = direction;
+                    neighborNode->direction = transition.direction;
+                    neighborNode->cellId = transition.cellId;
                     neighborNode->isTeleport = false;
                     neighborNode->gCost = newGCost;
                 }
@@ -169,54 +137,27 @@ std::vector<PathStep> findPath(const WorldGraph& worldGraph,
                 openSet.push(neighborNode);
             }
         }
+    }
 
-        // Explorer les téléportations possibles
-        if (teleportMaps.find(currentNode->mapId) != teleportMaps.end()) {
-            // On peut téléporter vers n'importe quelle autre map de téléportation
-            for (uint32_t teleportMapId : teleportMaps) {
-                // Ne pas téléporter vers soi-même ou vers une map déjà visitée
-                if (teleportMapId == currentNode->mapId ||
-                    closedSet.find(teleportMapId) != closedSet.end()) {
-                    continue;
-                }
+    // Reconstruire le chemin si trouvé
+    std::vector<PathStep> path;
+    if (endNode) {
+        uint32_t current = endMapId;
 
-                // Vérifier que la map existe
-                if (!worldGraph.mapExists(teleportMapId)) {
-                    continue;
-                }
+        while (current != 0) {
+            PathNode* node = allNodes[current];
+            std::string type = node->isTeleport ? "teleport" : "walk";
+            path.push_back({ current, node->cellId, type, node->direction });
 
-                double newGCost = currentNode->gCost + 1.0;  // Coût de téléportation = 1
+            if (current == startMapId) break;
+            current = node->parentMapId;
+        }
 
-                // Vérifier si on a déjà un meilleur chemin
-                auto it = allNodes.find(teleportMapId);
-                if (it != allNodes.end() && it->second->gCost <= newGCost) {
-                    continue;
-                }
+        std::reverse(path.begin(), path.end());
 
-                // Créer ou mettre à jour le nœud
-                PathNode* teleportNode;
-                if (it == allNodes.end()) {
-                    teleportNode = new PathNode{
-                        teleportMapId,
-                        currentNode->mapId,
-                        -1,
-                        -1,
-                        true,
-                        newGCost,
-                        calculateHeuristic(worldGraph.getMapCoordinates(teleportMapId),
-                                         worldGraph.getMapCoordinates(endMapId))
-                    };
-                    allNodes[teleportMapId] = teleportNode;
-                } else {
-                    teleportNode = it->second;
-                    teleportNode->parentMapId = currentNode->mapId;
-                    teleportNode->direction = -1;
-                    teleportNode->isTeleport = true;
-                    teleportNode->gCost = newGCost;
-                }
-
-                openSet.push(teleportNode);
-            }
+        if (!path.empty()) {
+            path[0].type = "start";
+            path[0].cellId = -1;
         }
     }
 
@@ -225,8 +166,74 @@ std::vector<PathStep> findPath(const WorldGraph& worldGraph,
         delete pair.second;
     }
 
-    // Aucun chemin trouvé
-    return {};
+    return path;
+}
+
+// Fonction principale de pathfinding avec téléportations
+std::vector<PathStep> findPath(const WorldGraph& worldGraph,
+    uint32_t startMapId,
+    uint32_t endMapId,
+    const std::unordered_set<uint32_t>& teleportMaps) {
+
+    // Cas simple : pas de téléportation
+    if (teleportMaps.empty()) {
+        return findBasicPath(worldGraph, startMapId, endMapId);
+    }
+
+    // Trouver le chemin direct sans téléportation
+    std::vector<PathStep> directPath = findBasicPath(worldGraph, startMapId, endMapId);
+    size_t bestPathLength = directPath.size();
+    std::vector<PathStep> bestPath = directPath;
+
+    // Si pas de chemin direct, bestPathLength sera 0, on met une valeur très grande
+    if (bestPathLength == 0) {
+        bestPathLength = std::numeric_limits<size_t>::max();
+    }
+
+    // Pour chaque map de téléportation, calculer le chemin via cette téléportation
+    for (uint32_t teleportMapId : teleportMaps) {
+        if (!worldGraph.mapExists(teleportMapId)) {
+            continue;
+        }
+
+        // Chemin: start -> teleport -> end
+        std::vector<PathStep> pathViaTeleport;
+
+        // Étape 1: Départ
+        pathViaTeleport.push_back({ startMapId, -1, "start", -1 });
+
+        // Étape 2: Téléportation (sauf si on est déjà sur la map de téléportation)
+        if (startMapId != teleportMapId) {
+            pathViaTeleport.push_back({ teleportMapId, -1, "teleport", -1 });
+        }
+
+        // Étape 3: Marche depuis la téléportation jusqu'à destination (si nécessaire)
+        if (teleportMapId != endMapId) {
+            std::vector<PathStep> pathFromTeleport = findBasicPath(worldGraph, teleportMapId, endMapId);
+
+            // Si un chemin existe depuis la téléportation
+            if (!pathFromTeleport.empty()) {
+                // Ignorer le premier élément (qui est la map de téléportation elle-même)
+                for (size_t i = 1; i < pathFromTeleport.size(); ++i) {
+                    pathViaTeleport.push_back(pathFromTeleport[i]);
+                }
+
+                // Comparer avec le meilleur chemin trouvé
+                if (pathViaTeleport.size() < bestPathLength) {
+                    bestPathLength = pathViaTeleport.size();
+                    bestPath = pathViaTeleport;
+                }
+            }
+        } else {
+            // La téléportation nous amène directement à destination
+            if (pathViaTeleport.size() < bestPathLength) {
+                bestPathLength = pathViaTeleport.size();
+                bestPath = pathViaTeleport;
+            }
+        }
+    }
+
+    return bestPath;
 }
 
 // Commande de pathfinding
@@ -257,7 +264,7 @@ inline int pathfinding(const std::string& programParam, const std::vector<std::s
         for (size_t i = 0; i < path.size(); ++i) {
             if (i > 0) std::cout << ",";
             std::cout << "\n  {"
-                << "\"toMapId\":" << path[i].mapId << ","
+                << "\"toMapId\":" << path[i].toMapId << ","
                 << "\"cellId\":" << path[i].cellId << ","
                 << "\"type\":\"" << path[i].type << "\","
                 << "\"direction\":" << path[i].direction
