@@ -54,7 +54,8 @@ add_library(WorldGraphLib STATIC
     ${SRC_DIR}/Direction.hpp
     ${SRC_DIR}/WorldGraph.hpp
     ${SRC_DIR}/WorldGraph.cpp
-    ${SRC_DIR}/WorldGraphReader.cpp
+    # ${SRC_DIR}/WorldGraphReader.cpp
+    ${SRC_DIR}/WorldGraphReaderSeek.cpp
     ${SRC_DIR}/WorldGraphReader.hpp
     ${SRC_DIR}/WorldGraphCommands.hpp
 )

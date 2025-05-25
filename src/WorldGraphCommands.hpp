@@ -237,3 +237,20 @@ int getNeighborsDetailed(const std::string& programParam, const std::vector<std:
         return 1;
     }
 }
+
+int countMapWithPois(const std::string& /*programParam*/, const std::vector<std::string>& /*args*/, const WorldGraph& worldGraph) {
+    auto wg = worldGraph.getWorldGraph();
+    int count = 0;
+    for (const auto& pair : wg) {
+        const auto& edges = pair.second;
+        if (std::find_if(edges.begin(), edges.end(), [](const WorldGraphEdge& edge) {
+            return std::any_of(edge.transitions.begin(), edge.transitions.end(), [](const WorldGraphEdgeTransition& transition) {
+                return (transition.direction == 0 || transition.direction == 2 || transition.direction == 4 || transition.direction == 6) && transition.skillId == -1;
+                });
+            }) != edges.end()) {
+            ++count;
+        }
+    }
+    std::cout << count << std::flush;
+    return 0;
+}

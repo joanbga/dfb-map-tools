@@ -60,6 +60,7 @@ public:
     size_t getMapCount() const { return m_mapData.size(); }
     size_t getTotalEdgeCount() const;
     size_t getTotalTransitionCount() const;
+    std::unordered_map<uint32_t, std::vector<WorldGraphEdge>> getWorldGraph() const { return m_worldGraph; }
 
     std::unordered_map<uint32_t, WorldGraphMapData> m_mapData;
     std::unordered_map<uint32_t, Vec2> m_mapCoordinates;

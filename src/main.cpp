@@ -85,6 +85,7 @@ int main(int argc, char* argv[])
         commands.registerCommand("getWorldGraphStats", getWorldGraphStats);
         commands.registerCommand("listMapsInArea", listMapsInArea);
         commands.registerCommand("getNeighborsDetailed", getNeighborsDetailed);
+        commands.registerCommand("countMapWithPois", countMapWithPois);
 
         if (argc < 4)
         {
