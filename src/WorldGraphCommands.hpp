@@ -139,3 +139,94 @@ int listMapsInArea(const std::string& programParam, const std::vector<std::strin
         return 1;
     }
 }
+
+int getNeighborsDetailed(const std::string& programParam, const std::vector<std::string>& args, const WorldGraph& worldGraph) {
+    (void)programParam;
+
+    if (args.size() < 1) {
+        std::cerr << "Usage: getNeighborsDetailed <mapId> [direction]" << std::endl;
+        std::cerr << "  direction: 0 (EAST), 2 (SOUTH), 4 (WEST), 6 (NORTH)" << std::endl;
+        return 1;
+    }
+
+    try {
+        uint32_t mapId = parseMapId(args[0]);
+
+        // Direction optionnelle
+        int filterDirection = -1;
+        if (args.size() >= 2) {
+            filterDirection = std::stoi(args[1]);
+            if (filterDirection != 0 && filterDirection != 2 &&
+                filterDirection != 4 && filterDirection != 6) {
+                std::cerr << "Error: Invalid direction. Must be 0, 2, 4, or 6" << std::endl;
+                return 1;
+            }
+        }
+
+        const std::vector<WorldGraphEdge>* edges = worldGraph.getMapEdges(mapId);
+
+        if (!edges) {
+            std::cout << "[]" << std::flush;
+            return 0;
+        }
+
+        // Structure pour stocker les voisins avec leurs transitions
+        struct NeighborInfo {
+            uint32_t mapId;
+            uint8_t zoneId;
+            std::vector<WorldGraphEdgeTransition> transitions;
+        };
+
+        std::vector<NeighborInfo> neighbors;
+
+        // Parcourir tous les edges
+        for (const auto& edge : *edges) {
+            std::vector<WorldGraphEdgeTransition> filteredTransitions;
+
+            // Filtrer les transitions par direction si nécessaire
+            for (const auto& transition : edge.transitions) {
+                if (filterDirection == -1 || transition.direction == filterDirection) {
+                    filteredTransitions.push_back(transition);
+                }
+            }
+
+            // Ajouter le voisin si il a des transitions valides
+            if (!filteredTransitions.empty()) {
+                neighbors.push_back({ edge.toMapId, edge.zoneId, filteredTransitions });
+            }
+        }
+
+        // Retourner le résultat en JSON détaillé
+        std::cout << "[";
+        for (size_t i = 0; i < neighbors.size(); ++i) {
+            if (i > 0) std::cout << ",";
+            const auto& neighbor = neighbors[i];
+
+            std::cout << "{"
+                << "\"toMapId\":" << neighbor.mapId << ","
+                << "\"zoneId\":" << static_cast<int>(neighbor.zoneId) << ","
+                << "\"transitions\":[";
+
+            for (size_t j = 0; j < neighbor.transitions.size(); ++j) {
+                if (j > 0) std::cout << ",";
+                const auto& trans = neighbor.transitions[j];
+                std::cout << "{"
+                    << "\"type\":" << static_cast<int>(trans.type) << ","
+                    << "\"direction\":" << static_cast<int>(trans.direction) << ","
+                    << "\"skillId\":" << trans.skillId << ","
+                    << "\"transitionMapId\":" << trans.transitionMapId << ","
+                    << "\"cellId\":" << trans.cellId
+                    << "}";
+            }
+
+            std::cout << "]}";
+        }
+        std::cout << "]" << std::flush;
+
+        return 0;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+}
