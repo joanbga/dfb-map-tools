@@ -169,7 +169,6 @@ int getNeighborsDetailed(const std::string& programParam, const std::vector<std:
             std::cout << "[]" << std::flush;
             return 0;
         }
-
         // Structure pour stocker les voisins avec leurs transitions
         struct NeighborInfo {
             uint32_t mapId;
@@ -201,9 +200,17 @@ int getNeighborsDetailed(const std::string& programParam, const std::vector<std:
         for (size_t i = 0; i < neighbors.size(); ++i) {
             if (i > 0) std::cout << ",";
             const auto& neighbor = neighbors[i];
+            // Récupérer les données de la map cible
+            const WorldGraphMapData* targetMapData = worldGraph.findMap(neighbor.mapId);
+            const Vec2& targetPos = targetMapData ? targetMapData->position : Vec2{ -127, -127 };
+            std::string targetPosStr = (targetMapData) ?
+                "\"x\":" + std::to_string(static_cast<int>(targetPos.x)) +
+                ",\"y\":" + std::to_string(static_cast<int>(targetPos.y)) + "," :
+                "";
 
             std::cout << "{"
                 << "\"toMapId\":" << neighbor.mapId << ","
+                << targetPosStr
                 << "\"zoneId\":" << static_cast<int>(neighbor.zoneId) << ","
                 << "\"transitions\":[";
 
