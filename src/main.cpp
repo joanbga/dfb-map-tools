@@ -81,13 +81,14 @@ int main(int argc, char* argv[])
             "listMapsInArea",
             "getWorldGraphStats",  // Partiellement - pour edgeCount
             "findMap",  // Charge une seule map à la demande
-            "getNeighborsDetailed"
+            "getNeighborsDetailed",
         };
 
         // Commandes qui nécessitent le chargement complet ou partiel
         std::set<std::string> pathfindingCommands = {
             "pathfinding",  // Charge les maps au fur et à mesure
-            "getNeighborsDetailed"
+            "getNeighborsDetailed",
+            "getMapsToDirection"
         };
 
         bool loadSuccess = false;
@@ -121,6 +122,7 @@ int main(int argc, char* argv[])
         commands.registerCommand("getNeighborsDetailed", getNeighborsDetailed);
         commands.registerCommand("countMapWithPois", countMapWithPois);
         commands.registerCommand("pathfinding", pathfinding);
+        commands.registerCommand("getMapsToDirection", getMapsToDirection);
 
         if (argc < 4)
         {

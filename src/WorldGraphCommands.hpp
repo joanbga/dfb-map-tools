@@ -266,3 +266,58 @@ int countMapWithPois(const std::string& /*programParam*/, const std::vector<std:
     std::cout << count << std::flush;
     return 0;
 }
+
+int getMapsToDirection(const std::string& programParam, const std::vector<std::string>& args, const WorldGraph& worldGraph) {
+    (void)programParam;
+
+    if (args.size() < 2) {
+        std::cerr << "Usage: getMapsToDirections <mapId> <direction> [length]" << std::endl;
+        return 1;
+    }
+
+    try {
+        uint32_t mapId = parseMapId(args[0]);
+        int direction = std::stoi(args[1]);
+        if (direction < 0 || direction >= 8) {
+            std::cerr << "Error: Invalid direction. Must be between 0 and 7." << std::endl;
+            return 1;
+        }
+        int length = (args.size() > 2) ? std::stoi(args[2]) : 1;
+
+        std::vector<uint32_t> result = {};
+        while (length-- > 0) {
+            const std::vector<WorldGraphEdge>* edges = worldGraph.getMapEdges(mapId);
+            if (!edges) {
+                break;
+            }
+            auto it = std::find_if(edges->begin(), edges->end(), [direction](const WorldGraphEdge& edge) {
+                return std::any_of(edge.transitions.begin(), edge.transitions.end(), [direction](const WorldGraphEdgeTransition& transition) {
+                    return transition.direction == direction;
+                    });
+                });
+            if (it == edges->end()) {
+                break; // Pas de transition dans cette direction
+            }
+            result.push_back(it->toMapId);
+            mapId = it->toMapId; // Passer à la prochaine map
+        }
+
+        if (result.empty()) {
+            std::cout << "[]" << std::flush;
+            return 0;
+        }
+
+        std::cout << "[";
+        for (size_t i = 0; i < result.size(); ++i) {
+            if (i > 0) std::cout << ", ";
+            std::cout << result[i];
+        }
+        std::cout << "]" << std::flush;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
